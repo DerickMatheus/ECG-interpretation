@@ -1,10 +1,20 @@
 import pandas as pd
 import numpy as np
 import neurokit as nk
+#!/usr/bin/env python
+# coding: utf-8
+import time
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from copy import deepcopy
+from matplotlib import pyplot as plt
+import neurokit as nk
+import random
+import datetime
 
 from joblib import Parallel, delayed
 import multiprocessing
-
 
 class naiveClassifier():
     def __init__(self):
@@ -100,20 +110,25 @@ class naiveClassifier():
 
     def read_data(self, data):
         if(type(data) != type([])):
-            for i in range(12):
-                self.signal[i] = np.array([x[i] for x in data[0]])
+                self.signal = np.transpose(data)
         else:
             self.signal = data
         meanrr = []
         for i in range(12):
             rrduration = []
-            self.ecg_process[i] = nk.ecg_process(self.signal[i],
+#             try:
+            ecg_process[i] = nk.ecg_process(self.signal[i],
                                             sampling_rate = 400,
                                             hrv_features = None,
-                                            filter_type = 'FIR')
-            self.ecg_process[i]['ECG']['R_Peaks'] = [[y, x] for x, y in
-                                                enumerate(self.ecg_process[i][
+                                            filter_type='FIR')
+    
+            ecg_process[i]['ECG']['R_Peaks'] = [[y, x] for x, y in
+                                                enumerate(ecg_process[i][
                                                     'ECG']['R_Peaks'])]
+
+#             except:
+#                 print("error on ecg segmentation\n derviv = ", i)
+#                 raise NameError('ECG segmentation error')
 
 
     def single_predict(self, data):
