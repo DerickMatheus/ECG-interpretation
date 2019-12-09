@@ -12,13 +12,12 @@ import datetime
 
 class ecgInterpretation():
     def __init__(self):
-        self.result = pd.DataFrame(columns=['id', 'derivation', 'wave',
-                                            'p_value', 'execution_time'])
+        self.result = []
         self.diagnosis_derivations = ["D1", "D2", "D3", "AVL", "AVF", "AVR",
                                       "V1", "V2", "V3", "V4", "V5", "V6"]
         self.diagnosis =["BAV1o", "BRD", "BRE", "Bradi", "FA", "Taqui",
                          "Flutt"]
-        self.tests_wave = ['p', 't', 'q', 'r', 's']
+        self.tests_wave = ['p', 't', 'q', 'r', 's', 'p_', 't_', 'q_', 'r_', 's_']
         self.tests_period = ['qrs', 'pr', 'st', 'stt', 'qt', 'rr']
         self.true_label = 0
 
@@ -120,19 +119,46 @@ class ecgInterpretation():
                                np.array(peaks['ECG']['T_Waves_Ends']),
                                type_of_noise, deriv)
 
+        elif(type_of_noise == 'q_'):
+            self.increase_duration(ecg, np.array(peaks['ECG'][
+                'Q_Waves_Onsets']),
+                               np.array(peaks['ECG']['Q_Waves']))
+        
+        elif(type_of_noise == 'r_'):
+            self.increase_duration(ecg, np.array(peaks['ECG']['Q_Waves']),
+                               np.array(peaks['ECG']['R_Peaks']))
+                        
+        elif(type_of_noise == 's_'):
+            self.increase_duration(ecg, np.array(peaks['ECG']['R_Peaks']),
+                               np.array(peaks['ECG']['S_Waves']))
+            
+        elif(type_of_noise == 'qrs'):
+            self.drift_qrs(ecg, np.array(peaks['ECG']['Q_Waves_Onsets']),
+                      np.array(peaks['ECG']['Q_Waves_Onset']),
+                      np.array(peaks['ECG']['S_Waves']))
+            
+        elif(type_of_noise == 'p_'):
+            self.increase_duration(ecg, np.array(peaks['ECG']['P_Waves']),
+                               np.array(peaks['ECG']['Q_Waves_Onsets']))
+        
+        elif(type_of_noise == 't_'):
+            self.increase_duration(ecg, np.array(peaks['ECG']['T_Waves_Onsets']),
+                               np.array(peaks['ECG']['T_Waves_Ends']))
+
         else:
             print("ERRO IN NOISE TYPE")
         return(ecg)
 
-    def generate_noises_sim(self, sim, signal, peaks, noise_type, deriv):
+    def generate_noises_sim(self, sim, signal, peaks, noise_type, deriv, all_deriv):
         err = 0
         T = [None] * sim
         for j in range(sim):
             T[j] = []
             for i in range(12):
-                if(i == deriv):
+                prob = random.uniform(0, 1)
+                if(i == deriv or (all_deriv and prob >= 0.5)):
                     T[j].append(self.generate_noise(signal[i], peaks[i],
-                                               noise_type, deriv))
+                                               noise_type, i))
                 else:
                     T[j].append(signal[i])
             T[j] = np.array([np.transpose(T[j])])
@@ -140,11 +166,12 @@ class ecgInterpretation():
 
     def evaluate(self, scores, real_diagnose, sim, pathology):
         err = 0
+        if(pathology == -1):
+            err = []
         for j in range(sim):
             y_new_score = scores[j]
             if pathology == -1:
-                if((y_new_score != real_diagnose).any()):
-                    err += 1
+                err.append(y_new_score - real_diagnose)
             else:
                 if isinstance(pathology, list):
                     change = 1
@@ -156,40 +183,39 @@ class ecgInterpretation():
                 else:
                     if(y_new_score[pathology] != real_diagnose[pathology]):
                        err += 1
+        if(pathology == -1):
+            return(np.mean(err, axis = 0))
         return(1 - err/sim)
 
     def test_signal(self, sim, model, signal, peaks, noise_type,
-                    real_diagnose, deriv, pathology = -1):
-        tests_wave = ['p', 't', 't', 'p']
-        if(noise_type == 'random'):
-            noise_type = random.choice(tests_wave)
+                    real_diagnose, deriv, all_deriv, pathology = -1):
 #        scores = [None] * sim
-        T = self.generate_noises_sim(sim, signal, peaks, noise_type, deriv)
-        print("simulation deriv = ", self.diagnosis_derivations[deriv])
+        T = self.generate_noises_sim(sim, signal, peaks, noise_type, deriv, all_deriv)
+        if(all_deriv == False):
+            print("simulation deriv = ", self.diagnosis_derivations[deriv])
         scores = model.predict(T)
 #        scores = [model.predict(x) for x in T]
         err = self.evaluate(scores, real_diagnose, sim, pathology)
             
         return(err)
 
-    def compute_score(self, sim, model, signal, nkprocess):
+    def compute_score(self, sim, model, signal, nkprocess, all_deriv):
         start = time.time()
+        nderivs = 12
+        if(all_deriv == True):
+            nderivs = 1
+        
         for i in self.tests_wave:
             print("computing wave ", i)
-            for j in range(12):
+            for j in range(nderivs):
                 start_one_execution = time.time()
                 res = self.test_signal(sim, model, signal, nkprocess, i,
-                                  self.true_label, j)
-                if(res <= 0.95): 
-                    print(self.diagnosis_derivations[j], i, res)
-                    #self.result = self.result.append(pd.Series([
-                    #    self.diagnosis_derivations[j], i, res, time.time() -
-                    #    start_one_execution], index=self.result.columns),
-                    #    ignore_index=True)
+                                  self.true_label, j, all_deriv)
+                self.result.append([i, res])
         print(time.time() - start)
 
 
-    def execute(self, sim, model, data):
+    def execute(self, sim, model, data, all_deriv = True):
         ## model most have a "predict" object
 
         ecg_process = [None] * 12
@@ -210,5 +236,6 @@ class ecgInterpretation():
                 raise NameError('ECG segmentation error')
 
         self.true_label = model.predict(signal)
-        self.compute_score(sim, model, signal, ecg_process)
+        print(self.true_label)
+        self.compute_score(sim, model, signal, ecg_process, all_deriv)
         return self.result

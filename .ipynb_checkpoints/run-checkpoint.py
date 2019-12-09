@@ -32,7 +32,6 @@ def execute(val_path, val_traces, sim, id_ecg):
 
     model_interp = ecgInterpretation()
     model = naiveClassifier()
-    model.predict(signals)
     return model_interp.execute(sim, model, signals)
 
     
