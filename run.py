@@ -41,4 +41,3 @@ def main(_run):
     warnings.filterwarnings("ignore")
 
     return execute()
-
