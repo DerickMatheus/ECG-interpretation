@@ -245,6 +245,7 @@ class ecgInterpretation():
         T = self.generate_noises_sim(sim, signal, peaks, noise_type, deriv, all_deriv)
         if(all_deriv == False):
             print("simulation deriv = ", self.diagnosis_derivations[deriv])
+        T = np.squeeze(T, axis=1)
         scores = model.predict(T)
 #        scores = [model.predict(x) for x in T]
         err = self.evaluate(scores, real_diagnose, sim, pathology)
@@ -267,26 +268,30 @@ class ecgInterpretation():
         print(time.time() - start)
 
 
-    def execute(self, sim, model, data, all_deriv = True):
+    def execute(self, sim, model, data, all_deriv = True, T = False):
         ## model most have a "predict" object
 
         signal = [None] * 12
         for i in range(12):
             signal[i] = np.array([x[i] for x in data])
-            try:
-                self.ecg_process[i] = nk.ecg_process(signal[i],
-                                                sampling_rate = 400,
-                                                hrv_features = None,
-                                                filter_type='FIR')
-                self.ecg_process[i]['ECG']['R_Peaks'] = [[y, x] for x, y in
-                                                    enumerate(self.ecg_process[i][
-                                                        'ECG']['R_Peaks'])]
+#             try:
+            self.ecg_process[i] = nk.ecg_process(signal[i],
+                                            sampling_rate = 400,
+                                            hrv_features = None,
+                                            filter_type='FIR')
+            self.ecg_process[i]['ECG']['R_Peaks'] = [[y, x] for x, y in
+                                                enumerate(self.ecg_process[i][
+                                                    'ECG']['R_Peaks'])]
 
-            except:
-                print("error on ecg segmentation\n derviv = ", i)
-                raise NameError('ECG segmentation error')
+#             except:
+#                 print("error on ecg segmentation\n derviv = ", i)
+#                 raise NameError('ECG segmentation error')
 
-        self.true_label = model.predict(signal)
+        if(T == True):
+            aux_signal = deepcopy(np.array([np.transpose(signal)]))
+        else:
+            aux_signal = signal
+        self.true_label = model.predict(aux_signal)
         print(self.true_label)
         self.compute_score(sim, model, signal, all_deriv)
         return self.result

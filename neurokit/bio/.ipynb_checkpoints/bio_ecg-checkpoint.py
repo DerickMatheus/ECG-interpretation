@@ -9,6 +9,7 @@ import nolds
 import mne
 import biosppy
 import scipy.signal
+import joblib
 
 from .bio_ecg_preprocessing import *
 from .bio_rsp import *
@@ -346,6 +347,7 @@ def ecg_signal_quality(cardiac_cycles, sampling_rate, rpeaks=None, quality_model
 
     if quality_model == "default":
         model = sklearn.externals.joblib.load(Path.materials() + 'heartbeat_classification.model')
+#         model = joblib.load(Path.materials() + 'heartbeat_classification.model')
     else:
         model = sklearn.externals.joblib.load(quality_model)
 
@@ -359,7 +361,7 @@ def ecg_signal_quality(cardiac_cycles, sampling_rate, rpeaks=None, quality_model
 
     predict = pd.DataFrame(model.predict_proba(cardiac_cycles))
     predict.columns = model.classes_
-    quality["Cardiac_Cycles_Signal_Quality"] = predict[lead].as_matrix()
+    quality["Cardiac_Cycles_Signal_Quality"] = predict[lead].values
     quality["Average_Signal_Quality"] = predict[lead].mean()
 
     # Interpolate to get a continuous signal

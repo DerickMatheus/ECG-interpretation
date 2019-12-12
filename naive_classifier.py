@@ -189,8 +189,9 @@ class naiveClassifier():
     def predict(self, data):
         num_cores = multiprocessing.cpu_count()
         if(len(np.shape(data)) == 2):
+#             data = np.transpose(data)
             result = self.single_predict(data)
         else:
             result = Parallel(n_jobs = num_cores)(
-                delayed(self.single_predict)(x[0]) for index,x in enumerate(data))
+                delayed(self.single_predict)(x) for index,x in enumerate(data))
         return result

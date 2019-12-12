@@ -1,27 +1,33 @@
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.simplefilter(action='ignore', category=UserWarning)
 from naive_classifier import naiveClassifier
 from interpret import ecgInterpretation
 from data_for_test import get_data_for_test
 import pandas as pd
 import numpy as np
-import sys
+import sys, os
+from keras.models import load_model
 from sacred import Experiment
 from sacred.observers import MongoObserver
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
 
 ex = Experiment("interpret")
 
 
 @ex.config
 def get_config():
-    val_path = '/scratch/derickmath/datasets/base_dados_laudos_unificada_revista.csv'
-    val_traces = '/scratch/derickmath/datasets/val_traces.csv'
+#     val_path = '/scratch/derickmath/datasets/base_dados_laudos_unificada_revista.csv'
+#     val_traces = '/scratch/derickmath/datasets/val_traces.csv'
+    val_path = '/mnt/code/datasets/base_dados_laudos_unificada_revista.csv'
+    val_traces = '/mnt/code/datasets/val_traces.csv'
+    model_name = '/mnt/code/metricas/backup_model_best.hdf5'
     sim = 100
     id_ecg = 1
+    model = "naive"
     
 @ex.capture
-def execute(val_path, val_traces, sim, id_ecg):
+def execute(val_path, val_traces, sim, id_ecg, model, model_name):
     # Get data
     data_ori = pd.read_csv(val_traces, sep = ";")
     exames = pd.read_csv(val_path, sep = ",")
@@ -30,9 +36,18 @@ def execute(val_path, val_traces, sim, id_ecg):
                                    path_to_val=val_path)
     signals =  np.array([x for x in data['x'][:][id_ecg]])
 
-    model_interp = ecgInterpretation()
-    model = naiveClassifier()
-    return model_interp.execute(sim, model, signals)
+    if(model == "naive"):
+        model = naiveClassifier()
+        model_interp = ecgInterpretation()
+        return model_interp.execute(sim, model, signals)
+    elif(model == "tensorflow_resnet"):
+        if(os.path.exists(model_name)):
+            model = load_model(model_name, compile=False)
+            model_interp = ecgInterpretation()
+            return model_interp.execute(sim, model, signals, T = True)
+        else:
+            raise Exception("no model")
+    
 
     
 @ex.automain
@@ -41,4 +56,3 @@ def main(_run):
     warnings.filterwarnings("ignore")
 
     return execute()
-
