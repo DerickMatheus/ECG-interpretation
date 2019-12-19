@@ -18,12 +18,10 @@ class ecgInterpretation():
                                       "V1", "V2", "V3", "V4", "V5", "V6"]
         self.diagnosis =["BAV1o", "BRD", "BRE", "Bradi", "FA", "Taqui",
                          "Flutt"]
-        self.tests_wave = ['p', 't', 'q', 'r', 's', 'rr']
+        self.tests_wave = ['qrs', 'p', 't', 'q', 'r', 's', 'rr', 'pr', 'st', 'qt']
         self.tests_period = ['qrs', 'pr', 'st', 'stt', 'qt', 'rr']
         self.true_label = 0
         self.ecg_process = [None] * 12
-
-
 
     def get_amplitude(self, wave, deriv):
         if(wave == 'r' or wave == 'qrs'):
@@ -70,9 +68,10 @@ class ecgInterpretation():
                     signal[j] = p(xp[k])
                     k += 1
 
-    def increase_rrduration(self, signal, interval_begin, interval_end, deriv):
+    def increase_rrduration(self, signal, deriv, n = None):
         
-        n = random.randint(0, 20)
+        if(n == None):
+            n = random.randint(0, 20)
 
         for i in range(n):
             it = random.randint(0, len(self.ecg_process[deriv]['ECG']['R_Peaks']) - 2)
@@ -84,75 +83,75 @@ class ecgInterpretation():
                 signal = np.delete(signal, pos+1, axis = 0)
                 
         return (signal)
-
-    def increase_duration(self, signal, interval_begin, interval_end):   
+                
+    def insert_noise(self, signal, interval_begin, interval_end, wave, deriv):   
         window = np.random.normal(5, 2, 1)
-        for i in range(int(int(window[0])/2)):
-            noise = np.random.normal(0, 2, 1)
-            for j in interval_begin:
-                signal[j - i] = signal[j] + noise
-            noise = np.random.normal(0, 1, 1)
-            for j in interval_end:
-                signal[j + i] = signal[j + i] + noise
+        i = 0
+        j = 0
+        while ((i < len(interval_begin)) and (j < len(interval_end))):
+                if(interval_begin[i][1] == interval_end[j][1]):
+                    for k in range(interval_begin[i][0], interval_end[j][0]):
+                        noise = np.random.normal(0, 0.5, 1)
+                        signal[k] += noise
+                    i += 1
+                    j += 1
+                else:
+                    if(i < j):
+                        i += 1
+                    else:
+                        j += 1
 
-    def generate_noise(self, signal, peaks, type_of_noise, deriv):
+    def generate_noise(self, signal, peaks, type_of_noise, deriv, n):
         ecg = deepcopy(signal)
         
         if(type_of_noise == 'rr'):
-            ecg = self.increase_rrduration(ecg, np.array(peaks['ECG'][
-                'Q_Waves_Onsets']), np.array(peaks['ECG']['Q_Waves']),
-                                deriv)
+            ecg = self.increase_rrduration(ecg, deriv, n)
         
         elif(type_of_noise == 'q'):
-            self.increase_amplitude(ecg, np.array(peaks['ECG'][
+            self.insert_noise(ecg, np.array(peaks['ECG'][
                 'Q_Waves_Onsets']), np.array(peaks['ECG']['Q_Waves']),
                                type_of_noise, deriv)
         
         elif(type_of_noise == 'r'):
-            self.increase_amplitude(ecg, np.array(peaks['ECG']['Q_Waves']),
+            self.insert_noise(ecg, np.array(peaks['ECG']['Q_Waves']),
                                np.array(peaks['ECG']['R_Peaks']),
                                type_of_noise, deriv)
                         
         elif(type_of_noise == 's'):
-            self.increase_amplitude(ecg, np.array(peaks['ECG']['R_Peaks']),
+            self.insert_noise(ecg, np.array(peaks['ECG']['R_Peaks']),
                                np.array(peaks['ECG']['S_Waves']),
                                type_of_noise, deriv)
             
-        elif(type_of_noise == 'qrs'):
-            self.drift_qrs(ecg, np.array(peaks['ECG']['Q_Waves_Onsets']),
-                      np.array(peaks['ECG']['Q_Waves_Onset']),
-                      np.array(peaks['ECG']['S_Waves']))
-            
         elif(type_of_noise == 'p'):
-            self.increase_amplitude(ecg, np.array(peaks['ECG']['P_Waves']),
+            self.insert_noise(ecg, np.array(peaks['ECG']['P_Waves']),
                                np.array(peaks['ECG']['Q_Waves_Onsets']),
                                type_of_noise, deriv)
         
         elif(type_of_noise == 't'):
-            self.increase_amplitude(ecg, np.array(peaks['ECG'][
-                'T_Waves_Onsets']),
+            self.insert_noise(ecg, np.array(peaks['ECG']['T_Waves_Onsets']),
                                np.array(peaks['ECG']['T_Waves_Ends']),
                                type_of_noise, deriv)
-
-        elif(type_of_noise == 'q_'):
-            self.increase_duration(ecg, np.array(peaks['ECG'][
-                'Q_Waves_Onsets']), np.array(peaks['ECG']['Q_Waves']))
-        
-        elif(type_of_noise == 'r_'):
-            self.increase_duration(ecg, np.array(peaks['ECG']['Q_Waves']),
-                               np.array(peaks['ECG']['R_Peaks']))
-                        
-        elif(type_of_noise == 's_'):
-            self.increase_duration(ecg, np.array(peaks['ECG']['R_Peaks']),
-                               np.array(peaks['ECG']['S_Waves']))
             
-        elif(type_of_noise == 'p_'):
-            self.increase_duration(ecg, np.array(peaks['ECG']['P_Waves']),
-                               np.array(peaks['ECG']['Q_Waves_Onsets']))
-        
-        elif(type_of_noise == 't_'):
-            self.increase_duration(ecg, np.array(peaks['ECG']['T_Waves_Onsets']),
-                               np.array(peaks['ECG']['T_Waves_Ends']))
+        elif(type_of_noise == 'qrs'):
+            self.insert_noise(ecg, np.array(peaks['ECG']['Q_Waves']),
+                               np.array(peaks['ECG']['S_Waves']),
+                               type_of_noise, deriv)
+            
+        elif(type_of_noise == 'pr'):
+            self.insert_noise(ecg, np.array(peaks['ECG']['P_Waves']),
+                               np.array(peaks['ECG']['Q_Waves']),
+                               type_of_noise, deriv)
+            
+        elif(type_of_noise == 'qt'):
+            self.insert_noise(ecg, np.array(peaks['ECG']['Q_Waves']),
+                               np.array(peaks['ECG']['T_Waves_Ends']),
+                               type_of_noise, deriv)
+            
+        elif(type_of_noise == 'st'):
+            self.insert_noise(ecg, np.array(peaks['ECG']['S_Waves']),
+                               np.array(peaks['ECG']['T_Waves_Ends']),
+                               type_of_noise, deriv)
+            
 
         else:
             print("ERRO IN NOISE TYPE")
@@ -198,7 +197,7 @@ class ecgInterpretation():
         plt.savefig(name)
         plt.close()
 
-    def generate_noises_sim(self, sim, signal, peaks, noise_type, deriv, all_deriv):
+    def generate_noises_sim(self, sim, signal, peaks, noise_type, deriv, all_deriv, n):
         err = 0
         T = [None] * sim
         self.plot(signal, "real")
@@ -208,7 +207,7 @@ class ecgInterpretation():
                 prob = random.uniform(0, 1)
                 if(i == deriv or (all_deriv and prob >= 0.5)):
                     T[j].append(self.generate_noise(signal[i], peaks[i],
-                                               noise_type, i))
+                                               noise_type, i, n))
                 else:
                     T[j].append(signal[i])
             if(j == 0):
@@ -240,9 +239,9 @@ class ecgInterpretation():
         return(1 - err/sim)
 
     def test_signal(self, sim, model, signal, peaks, noise_type,
-                    real_diagnose, deriv, all_deriv, pathology = -1):
+                    real_diagnose, deriv, all_deriv, n, pathology = -1):
 #        scores = [None] * sim
-        T = self.generate_noises_sim(sim, signal, peaks, noise_type, deriv, all_deriv)
+        T = self.generate_noises_sim(sim, signal, peaks, noise_type, deriv, all_deriv, n)
         if(all_deriv == False):
             print("simulation deriv = ", self.diagnosis_derivations[deriv])
         T = np.squeeze(T, axis=1)
@@ -252,7 +251,7 @@ class ecgInterpretation():
             
         return(err)
 
-    def compute_score(self, sim, model, signal, all_deriv):
+    def compute_score(self, sim, model, signal, all_deriv, n):
         start = time.time()
         nderivs = 12
         if(all_deriv == True):
@@ -263,7 +262,8 @@ class ecgInterpretation():
             for j in range(nderivs):
                 start_one_execution = time.time()
                 res = self.test_signal(sim, model, signal, self.ecg_process, i,
-                                  self.true_label, j, all_deriv)
+                                  self.true_label, j, all_deriv, n)
+                print(i, res)
                 self.result.append([i, res])
         print(time.time() - start)
 
@@ -293,5 +293,6 @@ class ecgInterpretation():
             aux_signal = signal
         self.true_label = model.predict(aux_signal)
         print(self.true_label)
-        self.compute_score(sim, model, signal, all_deriv)
+        n = random.randint(0, 20)
+        self.compute_score(sim, model, signal, all_deriv, n)
         return self.result

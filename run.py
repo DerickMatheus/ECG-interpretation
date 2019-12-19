@@ -17,11 +17,12 @@ ex = Experiment("interpret")
 
 @ex.config
 def get_config():
-#     val_path = '/scratch/derickmath/datasets/base_dados_laudos_unificada_revista.csv'
-#     val_traces = '/scratch/derickmath/datasets/val_traces.csv'
-    val_path = '/mnt/code/datasets/base_dados_laudos_unificada_revista.csv'
-    val_traces = '/mnt/code/datasets/val_traces.csv'
-    model_name = '/mnt/code/metricas/backup_model_best.hdf5'
+    val_path = '/scratch/derickmath/datasets/base_dados_laudos_unificada_revista.csv'
+    val_traces = '/scratch/derickmath/datasets/val_traces.csv'
+    model_name = '/scratch/derickmath/deteccao_metricas/backup_model_best.hdf5'
+#     val_path = '/mnt/code/datasets/base_dados_laudos_unificada_revista.csv'
+#     val_traces = '/mnt/code/datasets/val_traces.csv'
+#     model_name = '/mnt/code/metricas/backup_model_best.hdf5'
     sim = 100
     id_ecg = 1
     model = "naive"
@@ -39,12 +40,14 @@ def execute(val_path, val_traces, sim, id_ecg, model, model_name):
     if(model == "naive"):
         model = naiveClassifier()
         model_interp = ecgInterpretation()
-        return model_interp.execute(sim, model, signals)
+        result = model_interp.execute(sim, model, signals)
+        return result
     elif(model == "tensorflow_resnet"):
         if(os.path.exists(model_name)):
             model = load_model(model_name, compile=False)
             model_interp = ecgInterpretation()
-            return model_interp.execute(sim, model, signals, T = True)
+            result = model_interp.execute(sim, model, signals, T = True)
+            return result
         else:
             raise Exception("no model")
     
