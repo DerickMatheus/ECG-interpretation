@@ -23,6 +23,8 @@ class ecgInterpretation():
         self.tests_period = ['qrs', 'pr', 'st', 'stt', 'qt', 'rr']
         self.true_label = 0
         self.ecg_process = [None] * 12
+        self.noiseplt = 'noise'
+        self.realplt = 'real'
         
 #     #teste manual segmentation
 #     def manual_segment(self, peaks):
@@ -290,7 +292,7 @@ class ecgInterpretation():
     def generate_noises_sim(self, sim, signal, peaks, noise_type, deriv, all_deriv, n):
         err = 0
         T = [None] * sim
-        self.plot(signal, "real", peaks)
+        self.plot(signal, self.realplt, peaks)
         for j in range(sim):
             T[j] = []
             if(noise_type == self.test[0]):
@@ -305,7 +307,7 @@ class ecgInterpretation():
                     else:
                         T[j].append(signal[i])
             if(j == 0):
-                self.plot(T[j], "noise" + noise_type, peaks)
+                self.plot(T[j], self.noiseplt + noise_type, peaks)
             T[j] = np.array([np.transpose(T[j])])
         return T
 
@@ -368,9 +370,13 @@ class ecgInterpretation():
         print(time.time() - start)
 
 
-    def execute(self, sim, model, data, all_deriv = True, T = False):
+    def execute(self, sim, model, data, all_deriv = True, T = False, realname = None, noisename = None):
         ## model most have a "predict" object
 
+        if(realname != None or noisename != None):
+            self.realplt = realname
+            self.noiseplt = noisename
+        
         signal = [None] * 12
         for i in range(12):
             signal[i] = np.array([x[i] for x in data])

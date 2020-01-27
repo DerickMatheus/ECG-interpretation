@@ -23,12 +23,14 @@ def get_config():
 #     val_path = '/mnt/code/datasets/base_dados_laudos_unificada_revista.csv'
 #     val_traces = '/mnt/code/datasets/val_traces.csv'
 #     model_name = '/mnt/code/metricas/backup_model_best.hdf5'
+    real = None
+    noise = None
     sim = 100
     id_ecg = 1
     model = "naive"
     
 @ex.capture
-def execute(val_path, val_traces, sim, id_ecg, model, model_name):
+def execute(val_path, val_traces, sim, id_ecg, model, model_name, real, noise):
     # Get data
     data_ori = pd.read_csv(val_traces, sep = ";")
     exames = pd.read_csv(val_path, sep = ",")
@@ -46,7 +48,7 @@ def execute(val_path, val_traces, sim, id_ecg, model, model_name):
         if(os.path.exists(model_name)):
             model = load_model(model_name, compile=False)
             model_interp = ecgInterpretation()
-            result = model_interp.execute(sim, model, signals, T = True)
+            result = model_interp.execute(sim, model, signals, T = True, realname = real, noisename = noise)
             return result
         else:
             raise Exception("no model")
