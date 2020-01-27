@@ -1,0 +1,1 @@
+grep -P '\[\[[^\]]+|\]' $1 | tr -s ' ' | sed 's/ / , /g' | sed 's/, \[\[/ = c(/' | sed 's/\]\]$/' | sed 's/\[\[/original = c(/' | sed 's/( , /(/' | sed 's/, )/)' | awk 'BEGIN{out = -1} {if($1 == "original"){out += 1} print $0 > "rformat2/outfile_" out ".R"}'
