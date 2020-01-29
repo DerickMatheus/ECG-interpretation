@@ -20,15 +20,32 @@ def get_config():
     val_path = '/scratch/derickmath/datasets/base_dados_laudos_unificada_revista.csv'
     val_traces = '/scratch/derickmath/datasets/val_traces.csv'
     model_name = '/scratch/derickmath/deteccao_metricas/backup_model_best.hdf5'
-#     val_path = '/mnt/code/datasets/base_dados_laudos_unificada_revista.csv'
-#     val_traces = '/mnt/code/datasets/val_traces.csv'
-#     model_name = '/mnt/code/metricas/backup_model_best.hdf5'
+#     val_path = '/srv/code/datasets/base_dados_laudos_unificada_revista.csv'
+#     val_traces = '/srv/code/datasets/val_traces.csv'
+#     model_name = '/srv/code/metricas/backup_model_best.hdf5'
     real = None
     noise = None
     sim = 100
     id_ecg = 1
     model = "naive"
     
+@ex.capture
+def one_execution(data, sim, id_ecg, model, model_name, real, noise):
+    signals =  np.array([x for x in data['x'][:][id_ecg]])
+    if(model == "naive"):
+        classification_model = naiveClassifier()
+        model_interp = ecgInterpretation()
+        result = model_interp.execute(sim, classification_model, signals)
+        return result
+    elif(model == "tensorflow_resnet"):
+        if(os.path.exists(model_name)):
+            classification_model = load_model(model_name, compile=False)
+            model_interp = ecgInterpretation()
+            result = model_interp.execute(sim, classification_model, signals, T = True, realname = real, noisename = noise)
+            return result
+        else:
+            raise Exception("no model")
+            
 @ex.capture
 def execute(val_path, val_traces, sim, id_ecg, model, model_name, real, noise):
     # Get data
@@ -37,21 +54,13 @@ def execute(val_path, val_traces, sim, id_ecg, model, model_name, real, noise):
     pd.options.display.max_columns = None
     data = get_data_for_test(path_to_traces=val_traces,
                                    path_to_val=val_path)
-    signals =  np.array([x for x in data['x'][:][id_ecg]])
-
-    if(model == "naive"):
-        model = naiveClassifier()
-        model_interp = ecgInterpretation()
-        result = model_interp.execute(sim, model, signals)
-        return result
-    elif(model == "tensorflow_resnet"):
-        if(os.path.exists(model_name)):
-            model = load_model(model_name, compile=False)
-            model_interp = ecgInterpretation()
-            result = model_interp.execute(sim, model, signals, T = True, realname = real, noisename = noise)
-            return result
-        else:
-            raise Exception("no model")
+    
+    if(id_ecg == 'all'):
+        for i in range(len(data['x'])):
+            print(">>> processing id", i, " <<<")
+            one_execution(data, sim, id_ecg = i)
+    else:
+        one_execution(data, sim)
     
 
     
