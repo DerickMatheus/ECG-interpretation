@@ -1,0 +1,1 @@
+python3 run.py with val_traces="/scratch/joao.pedrosa/ecg_interpretation/data/val_traces.csv" val_path="/scratch/joao.pedrosa/ecg_interpretation/data/base_dados_laudos_unificada_revista.csv" model_name="/scratch/joao.pedrosa/ecg_interpretation/data/backup_model_best.hdf5" model="tensorflow_resnet"

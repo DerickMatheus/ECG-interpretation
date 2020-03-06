@@ -11,8 +11,9 @@ import random
 import datetime
 
 class ecgInterpretation():
-    def __init__(self):
+    def __init__(self, id_ecg):
         self.result = []
+        self.id_ecg = id_ecg
         self.derivations = ["D1", "D2", "D3", "AVL", "AVF", "AVR", "V1", "V2", "V3", "V4", "V5", "V6"]
         self.diagnosis_derivations = ["D1", "D2", "D3", "AVL", "AVF", "AVR",
                                       "V1", "V2", "V3", "V4", "V5", "V6"]
@@ -226,7 +227,7 @@ class ecgInterpretation():
             
 
         else:
-            print("ERRO IN NOISE TYPE")
+            print("ERROR IN NOISE TYPE")
         return(ecg)
     
     def plot(self, ECG, name, peaks):
@@ -311,7 +312,7 @@ class ecgInterpretation():
             T[j] = np.array([np.transpose(T[j])])
         return T
 
-    def evaluate(self, scores, real_diagnose, sim, pathology):
+    def evaluate(self, scores, real_diagnose, sim, pathology, noise_type):
         err = 0
         if(pathology == -1):
             err = []
@@ -331,8 +332,15 @@ class ecgInterpretation():
                     if(y_new_score[pathology] != real_diagnose[pathology]):
                        err += 1
         if(pathology == -1):
-            for i in err:
-                print(i)
+# These lines print all the test in screen
+#             for i in err:
+#                 print(i)
+            filename = 'output_result/tests/ecg'+str(self.id_ecg)+'wave'+str(noise_type)
+            with open(filename,'w') as f:
+                  for i in err:
+                    for j in i:
+                        f.write(str(j))
+                    f.write("\n")
             return(np.mean(err, axis = 0))
         return(1 - err/sim)
 
@@ -344,7 +352,7 @@ class ecgInterpretation():
         T = np.squeeze(T, axis=1)
         scores = model.predict(T)
         #scores = [model.predict(x) for x in T]
-        err = self.evaluate(scores, real_diagnose, sim, pathology)
+        err = self.evaluate(scores, real_diagnose, sim, pathology, noise_type)
             
         return(err)
 
@@ -360,6 +368,18 @@ class ecgInterpretation():
                 start_one_execution = time.time()
                 res = self.test_signal(sim, model, signal, self.ecg_process, i,
                                   self.true_label, j, all_deriv, n)
+                
+                #Writing final results to a file
+                filename = 'output_result/means/ecg'+str(self.id_ecg)
+                with open(filename,'a') as f:
+                    f.write(str(i))
+                    f.write(" = c(")
+                    f.write(str(res[0][0]))
+                    for num in res[0][1:]:
+                        f.write(",")
+                        f.write(str(num))
+                    f.write(")\n")
+                    
                 print(i, res)
                 self.result.append([i, res])
         print("computing ", self.test[0])
@@ -400,6 +420,16 @@ class ecgInterpretation():
         else:
             aux_signal = signal
         self.true_label = model.predict(aux_signal)
+        
+        filename = 'output_result/means/ecg'+str(self.id_ecg)
+        with open(filename,'w') as f:
+            f.write("original = c(")
+            f.write(str(self.true_label[0][0]))
+            for i in self.true_label[0]:
+                f.write(",")
+                f.write(str(i))
+            f.write(")\n")
+                
         print(self.true_label)
         n = random.randint(0, 20)
         self.compute_score(sim, model, signal, all_deriv, n)

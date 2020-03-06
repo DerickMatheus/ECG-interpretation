@@ -34,13 +34,13 @@ def one_execution(data, sim, id_ecg, model, model_name, real, noise):
     signals =  np.array([x for x in data['x'][:][id_ecg]])
     if(model == "naive"):
         classification_model = naiveClassifier()
-        model_interp = ecgInterpretation()
+        model_interp = ecgInterpretation(id_ecg)
         result = model_interp.execute(sim, classification_model, signals)
         return result
     elif(model == "tensorflow_resnet"):
         if(os.path.exists(model_name)):
             classification_model = load_model(model_name, compile=False)
-            model_interp = ecgInterpretation()
+            model_interp = ecgInterpretation(id_ecg)
             result = model_interp.execute(sim, classification_model, signals, T = True, realname = real, noisename = noise)
             return result
         else:
@@ -66,7 +66,7 @@ def execute(val_path, val_traces, sim, id_ecg, model, model_name, real, noise):
     
 @ex.automain
 def main(_run):
-
+    
     warnings.filterwarnings("ignore")
 
     return execute()
