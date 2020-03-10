@@ -4,3 +4,5 @@
 data/**/*.hdf5
 data/**/*.csv
 data/**/*.md
+#Ignore outputs
+output_result/*
