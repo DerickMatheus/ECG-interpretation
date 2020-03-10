@@ -1,2 +1,6 @@
 #Ignore all python cache files
 *.pyc
+#Ignore data files from the data folder
+data/**/*.hdf5
+data/**/*.csv
+data/**/*.md
