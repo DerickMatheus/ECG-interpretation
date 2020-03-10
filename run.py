@@ -27,7 +27,7 @@ def get_config():
     noise = None
     sim = 100
     id_ecg = 1
-    model = "naive"
+    model = "tensorflow_resnet"
     
 @ex.capture
 def one_execution(data, sim, id_ecg, model, model_name, real, noise):

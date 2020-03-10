@@ -19,52 +19,20 @@ class ecgInterpretation():
                                       "V1", "V2", "V3", "V4", "V5", "V6"]
         self.diagnosis =["BAV1o", "BRD", "BRE", "Bradi", "FA", "Taqui",
                          "Flutt"]
-        self.tests_wave = ['qrs', 'p', 't', 'q', 'r', 's', 'AV_rate', 'pr', 'st', 'qt', 'axis']
+        self.tests_wave = ['AV_rate', 'qrs', 'p', 't', 'q', 'r', 's', 'pr', 'st', 'qt', 'axis',
+                            'random15', 'random30', 'random50', 'random','random2']
+        self.map_waves = {'p': ('P_Waves', 'Q_Waves_Onsets'),
+                    'q': ('Q_Waves_Onsets', 'Q_Waves'),
+                    'r': ('Q_Waves', 'R_Peaks'),
+                    's': ('R_Peaks', 'S_Waves'),
+                    't': ('T_Waves_Onsets', 'T_Waves_Ends')}
+        self.random_impact = {'random15': 0.15, 'random30': 0.30, 'random50': 0.5, 'random': 1,'random2': 2}
         self.test = ['rhythm']
         self.tests_period = ['qrs', 'pr', 'st', 'stt', 'qt', 'rr']
         self.true_label = 0
         self.ecg_process = [None] * 12
         self.noiseplt = 'noise'
         self.realplt = 'real'
-        
-#     #teste manual segmentation
-#     def manual_segment(self, peaks):
-#         peaks['ECG']['Q_Waves'] = [[619,0],[1007,1],[1330,2],[1825,3],
-#                                    [2221,4],[2625,5],[3061,6]]
-#         peaks['ECG']['Q_Waves_Onsets'] = [[623,0],[987,1],[1321,2],[1790,3]
-#                                           ,[2200,4],[2591,5],[3034,6]]
-#         peaks['ECG']['P_Waves'] = [[600,0],[965,1],[1300,2],[1770,3],
-#                                    [2180,4],[2570,5],[3000,6]]
-#         peaks['ECG']['R_Peaks'] = [[633,0],[1020,1],[1343,2],[1837,3],
-#                                    [2241,4],[2645,5],[3086,6]]
-#         peaks['ECG']['S_Waves'] = [[653,0],[1047,1],[1370,2],[1854,3],
-#                                    [2258,4],[2662,5],[3103,6]]
-#         peaks['ECG']['T_Waves_Onsets'] = [[726,0],[1100,1],[1442,2],[1905,3],
-#                                           [2338,4],[2731,5],[3179,6]]
-#         peaks['ECG']['T_Waves_Ends'] = [[773,0],[1166,1],[1491,2],[1997,3],
-#                                         [2396,4],[2790,5],[3240,6]]
-#         return peaks
-      
-    #manual amplitudes change in every wave
-    def get_amplitude(self, wave, deriv):
-        if(wave == 'r' or wave == 'qrs'):
-            if(deriv <= 6):
-                amplitude = random.uniform(0.2, 0.25)
-            else:
-                amplitude = random.uniform(0.2, 0.35)
-        elif(wave == 'q' or wave == 's'):
-            if(deriv <= 6):
-                amplitude = random.uniform(-0.2, -0.25)
-            else:
-                amplitude = random.uniform(-0.3, -0.35)
-        elif(wave == 't'):
-            if(deriv <= 6):
-                amplitude = random.uniform(0.1, 0.15)
-            else:
-                amplitude = random.uniform(0.1, 0.15)
-        else:
-            amplitude = random.uniform(-0.2, 0.2)
-        return(amplitude)
 
     #change the amplitude of the ECG for a given wave and derivation
     def increase_amplitude(self, signal, interval_begin, interval_end, wave,
@@ -113,13 +81,12 @@ class ecgInterpretation():
                         j += 1
         return signal
         
-        
     #change the rhythm of the ECG
     def change_rhythm(self, signal):
         for deriv in [0, 1, 4]:
             p_waves = self.ecg_process[deriv]['ECG']['P_Waves']
-            terminal_force = np.random.normal(0.22, 0.2, 1)[0]
-            wave_duration = np.random.normal(40, 4, 1)[0]
+            terminal_force = np.random.normal(0, 0.35, 1)[0]
+            wave_duration = np.random.randint(20, 50, 1)[0]
             for waves in p_waves:
                 central_point = waves[0]
                 init = max(0, int(np.ceil(central_point - (wave_duration/2))))
@@ -128,27 +95,59 @@ class ecgInterpretation():
                 y = [0, terminal_force, 0]
                 z = np.polyfit(x, y, 3)
                 f = np.poly1d(z)
-                x_new = np.linspace(x[0], x[-1], end - init)
+                x_new = np.linspace(x[0], x[-1], np.abs(end - init))
                 y_new = f(x_new)
                 signal[deriv][init:end] = y_new
         return signal
                     
+    def resize_to(self, x, new_length):
+        x_new = np.zeros(new_length)
+        length = np.shape(x)[0]
+        if length >= new_length:
+            extra = (length - new_length) // 2
+            x_new = x[extra:new_length+extra]
+        else:
+            pad = (new_length - length) // 2
+            x_new[pad:length+pad] = x
+        return x_new
+
     #A/V rante change
     def increase_rrduration(self, signal, deriv, n = None):
         
         if(n == None):
-            n = random.randint(0, 20)
-
-        for i in range(n):
-            it = random.randint(0, len(self.ecg_process[deriv]['ECG']['R_Peaks']) - 2)
-            rs = [self.ecg_process[deriv]['ECG']['R_Peaks'][it][0], self.ecg_process[deriv]['ECG']['R_Peaks'][it + 1][0]]
-            signal = np.append(signal, signal[rs[0]:rs[1]])
-            for i in range(rs[1] - rs[0]):
-                pos = random.randint(0, len(signal) - 2)
-                signal[pos] = (signal[pos] + signal[pos+1])/2
-                signal = np.delete(signal, pos+1, axis = 0)
+            n = random.randint(6, 50)
+        
+        it = random.randint(0, len(self.ecg_process[deriv]['ECG']['R_Peaks']) - 2)
+        rs = [self.ecg_process[deriv]['ECG']['R_Peaks'][it][0], self.ecg_process[deriv]['ECG']['R_Peaks'][it + 1][0]]
+        new_signal = signal[rs[0]:rs[1]]
+        for j in range(n - 1):
+            new_signal = np.append(new_signal, signal[rs[0]:rs[1]])
+        new_signal = self.resize_to(new_signal, 4096)
                 
-        return (signal)
+        return (new_signal)
+    
+    #manual amplitudes change in every wave    
+    def get_amplitude(self, wave, deriv):
+        if(wave == 'r'):
+            if(deriv <= 6):
+                amplitude = np.random.normal(0, 0.35, 1)
+            else:
+                amplitude = np.random.normal(0, 0.45, 1)
+        elif(wave == 'q' or wave == 's'):
+            if(deriv <= 6):
+                amplitude = -np.random.normal(0, 0.35, 1)
+            else:
+                amplitude = -np.random.normal(0, 0.45, 1)
+        elif(wave == 't'):
+            if(deriv <= 6):
+                amplitude = np.random.normal(0, 0.25, 1)
+            else:
+                amplitude = np.random.normal(0, 0.25, 1)
+        elif(wave == 'p'):
+            amplitude = np.random.normal(0, 0.25, 1)
+        else:
+            amplitude = np.random.normal(0, 0.3, 1)
+        return(amplitude)
     
     #random noise insertion
     def insert_noise(self, signal, interval_begin, interval_end, wave, deriv):   
@@ -157,8 +156,8 @@ class ecgInterpretation():
         j = 0
         while ((i < len(interval_begin)) and (j < len(interval_end))):
                 if(interval_begin[i][1] == interval_end[j][1]):
+                    noise = self.get_amplitude(wave, deriv)
                     for k in range(interval_begin[i][0], interval_end[j][0]):
-                        noise = np.random.normal(0, 0.5, 1)
                         signal[k] += noise
                     i += 1
                     j += 1
@@ -167,72 +166,43 @@ class ecgInterpretation():
                         i += 1
                     else:
                         j += 1
+                        
+    def insert_random_noise(self, signal, deriv, impact):
+        sample_size = np.random.randint(2, 80, 1)
+        init = np.random.randint(0, 4015, 1)
+        end  = np.random.randint(init, init + sample_size, 1)
+        mean = np.mean(signal)
+        std = np.std(signal)
+        i = 0
+        j = 0
+        for k in range(init[0], end[0]):
+            noise = np.random.normal(0, mean + impact * std, 1)
+            signal[k] += noise
 
     def generate_noise(self, signal, peaks, type_of_noise, deriv, n):
         ecg = deepcopy(signal)        
 
         if(type_of_noise == 'AV_rate'):
             ecg = self.increase_rrduration(ecg, deriv, n)
-        
-        elif(type_of_noise == 'q'):
-            self.insert_noise(ecg, np.array(peaks['ECG'][
-                'Q_Waves_Onsets']), np.array(peaks['ECG']['Q_Waves']),
-                               type_of_noise, deriv)
-        
-        elif(type_of_noise == 'r'):
-            self.insert_noise(ecg, np.array(peaks['ECG']['Q_Waves']),
-                               np.array(peaks['ECG']['R_Peaks']),
-                               type_of_noise, deriv)
-                        
-        elif(type_of_noise == 's'):
-            self.insert_noise(ecg, np.array(peaks['ECG']['R_Peaks']),
-                               np.array(peaks['ECG']['S_Waves']),
-                               type_of_noise, deriv)
-            
-        elif(type_of_noise == 'p'):
-            self.insert_noise(ecg, np.array(peaks['ECG']['P_Waves']),
-                               np.array(peaks['ECG']['Q_Waves_Onsets']),
-                               type_of_noise, deriv)
-        
-        elif(type_of_noise == 't'):
-            self.insert_noise(ecg, np.array(peaks['ECG']['T_Waves_Onsets']),
-                               np.array(peaks['ECG']['T_Waves_Ends']),
-                               type_of_noise, deriv)
-            
-        elif(type_of_noise == 'qrs'):
-            self.insert_noise(ecg, np.array(peaks['ECG']['Q_Waves']),
-                               np.array(peaks['ECG']['S_Waves']),
-                               type_of_noise, deriv)
-            
-        elif(type_of_noise == 'pr'):
-            self.insert_noise(ecg, np.array(peaks['ECG']['P_Waves']),
-                               np.array(peaks['ECG']['Q_Waves']),
-                               type_of_noise, deriv)
-            
-        elif(type_of_noise == 'qt'):
-            self.insert_noise(ecg, np.array(peaks['ECG']['Q_Waves']),
-                               np.array(peaks['ECG']['T_Waves_Ends']),
-                               type_of_noise, deriv)
-            
-        elif(type_of_noise == 'st'):
-            self.insert_noise(ecg, np.array(peaks['ECG']['S_Waves']),
-                               np.array(peaks['ECG']['T_Waves_Ends']),
-                               type_of_noise, deriv)
             
         elif(type_of_noise == 'axis'):
             ecg = self.change_axis(ecg, deriv)
             
         elif(type_of_noise == 'rhythm'):
-            ecg = self.change_rhythm(ecg)
+            ecg = self.change_rhythm(ecg)            
             
-
-        else:
-            print("ERROR IN NOISE TYPE")
-        return(ecg)
+        elif(type_of_noise in self.random_impact):
+            self.insert_random_noise(ecg, deriv, self.random_impact[type_of_noise])
     
+        else:
+            for noise_wave in type_of_noise:
+                self.insert_noise(ecg, np.array(peaks['ECG'][self.map_waves[noise_wave][0]]),
+                                       np.array(peaks['ECG'][self.map_waves[noise_wave][1]]),
+                                       type_of_noise, deriv)
+        return(ecg)
+        
     def plot(self, ECG, name, peaks):
         x = np.arange(4096)
-
 
         fig, ax = plt.subplots(nrows=6, ncols=2, figsize=(18,20))
         fig.tight_layout()
@@ -256,8 +226,6 @@ class ecgInterpretation():
             ax[j, i].plot(t/400, y[t]/5,  'co', ms = 4)
             ax[j, i].plot(t_/400, y[t_]/5,  'co', ms = 4)
 
-            #ax[j, i].legend(["sinal", "p", "p_", "q", "r", "s", "t", "t_"])
-            
             major_ticksy = np.arange(-0.75, 0.75, 0.5)
             minor_ticksy = np.arange(-0.75, 0.75, 0.1)
             major_ticksx = np.arange(0, 10, 0.2)
@@ -279,9 +247,7 @@ class ecgInterpretation():
                 ax[j, i].set_xlabel('t (seconds)')
             if(j == 0):
                 ax[j, i].set_ylabel('x (mV)')
-                
-            
-            
+                          
             j += 1
             k += 1
             if(j == 6):
@@ -313,13 +279,13 @@ class ecgInterpretation():
         return T
 
     def evaluate(self, scores, real_diagnose, sim, pathology, noise_type):
-        err = 0
+        metric = 0
         if(pathology == -1):
-            err = []
+            metric = []
         for j in range(sim):
             y_new_score = scores[j]
             if pathology == -1:
-                err.append(y_new_score - real_diagnose)
+                metric.append(y_new_score - real_diagnose)
             else:
                 if isinstance(pathology, list):
                     change = 1
@@ -327,22 +293,19 @@ class ecgInterpretation():
                         if(y_new_score[0][f] == real_diagnose[id][f]):
                             change = 0
                     if change == 1:
-                        err += 1
+                        metric += 1
                 else:
                     if(y_new_score[pathology] != real_diagnose[pathology]):
-                       err += 1
+                        metric += 1
         if(pathology == -1):
-# These lines print all the test in screen
-#             for i in err:
-#                 print(i)
             filename = 'output_result/tests/ecg'+str(self.id_ecg)+'wave'+str(noise_type)
             with open(filename,'w') as f:
-                  for i in err:
+                  for i in metric:
                     for j in i:
                         f.write(str(j))
                     f.write("\n")
-            return(np.mean(err, axis = 0))
-        return(1 - err/sim)
+            return(np.mean(metric, axis = 0))
+        return(1 - metric/sim)
 
     def test_signal(self, sim, model, signal, peaks, noise_type,
                     real_diagnose, deriv, all_deriv, n, pathology = -1):
@@ -351,48 +314,49 @@ class ecgInterpretation():
             print("simulation deriv = ", self.diagnosis_derivations[deriv])
         T = np.squeeze(T, axis=1)
         scores = model.predict(T)
-        #scores = [model.predict(x) for x in T]
         err = self.evaluate(scores, real_diagnose, sim, pathology, noise_type)
             
         return(err)
+    
+    #Writing final results to a file
+    def print_results(self):
+        for i, res in self.result:
+            filename = 'output_result/means/ecg'+str(self.id_ecg)
+            with open(filename,'a') as f:
+                f.write(str(i))
+                f.write(" = c(")
+                f.write(str(res[0][0]))
+                for num in res[0][1:]:
+                    f.write(",")
+                    f.write(str(num))
+                f.write(")\n")
 
     def compute_score(self, sim, model, signal, all_deriv, n):
         start = time.time()
         nderivs = 12
         if(all_deriv == True):
             nderivs = 1
-        
+        print("computing ", self.test[0])
+        res = self.test_signal(sim, model, signal, self.ecg_process, self.test[0],
+                                  self.true_label, 0, all_deriv, n)
+        print(self.test[0], res)
+        self.result.append([self.test[0], res])
         for i in self.tests_wave:
             print("computing wave ", i)
             for j in range(nderivs):
                 start_one_execution = time.time()
                 res = self.test_signal(sim, model, signal, self.ecg_process, i,
                                   self.true_label, j, all_deriv, n)
-                
-                #Writing final results to a file
-                filename = 'output_result/means/ecg'+str(self.id_ecg)
-                with open(filename,'a') as f:
-                    f.write(str(i))
-                    f.write(" = c(")
-                    f.write(str(res[0][0]))
-                    for num in res[0][1:]:
-                        f.write(",")
-                        f.write(str(num))
-                    f.write(")\n")
-                    
-                print(i, res)
                 self.result.append([i, res])
-        print("computing ", self.test[0])
-        res = self.test_signal(sim, model, signal, self.ecg_process, self.test[0],
-                                  self.true_label, 0, all_deriv, n)
-        print(self.test[0], res)
-        self.result.append([self.test[0], res])
+                print(i, res)
+        
+        self.print_results()
         print(time.time() - start)
 
 
     def execute(self, sim, model, data, all_deriv = True, T = False, realname = None, noisename = None):
+        
         ## model most have a "predict" object
-
         if(realname != None or noisename != None):
             self.realplt = realname
             self.noiseplt = noisename
@@ -400,7 +364,6 @@ class ecgInterpretation():
         signal = [None] * 12
         for i in range(12):
             signal[i] = np.array([x[i] for x in data])
-#             try:
             self.ecg_process[i] = nk.ecg_process(signal[i],
                                             sampling_rate = 400,
                                             hrv_features = None,
@@ -408,13 +371,6 @@ class ecgInterpretation():
             self.ecg_process[i]['ECG']['R_Peaks'] = [[y, x] for x, y in
                                                 enumerate(self.ecg_process[i][
                                                     'ECG']['R_Peaks'])]
-
-            ######## remove this line
-            #self.ecg_process[i] = self.manual_segment(self.ecg_process[i])
-            ######## remove this line
-
-
-
         if(T == True):
             aux_signal = deepcopy(np.array([np.transpose(signal)]))
         else:
