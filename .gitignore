@@ -1,3 +1,12 @@
 #Ignore all python cache files
 *.pyc
+<<<<<<< HEAD
 __pycache__/*
+=======
+#Ignore data files from the data folder
+data/**/*.hdf5
+data/**/*.csv
+data/**/*.md
+#Ignore outputs
+output_result/*
+>>>>>>> 7eafdaa22492cc26f47b2fd8f981cbcf1e316a65
