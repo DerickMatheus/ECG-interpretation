@@ -248,7 +248,8 @@ class ecgInterpretation():
             if(j == 6):
                 i += 1
                 j = 0
-        plt.savefig(name)
+        figname = 'graphs/' + name
+        plt.savefig(figname)
         plt.close()
 
     def generate_noises_sim(self, sim, signal, peaks, noise_type, deriv, all_deriv, n):
