@@ -176,7 +176,7 @@ class ecgInterpretation():
         i = 0
         j = 0
         for k in range(init[0], end[0]):
-            noise = np.random.normal(0, mean + impact * std, 1)
+            noise = np.random.normal(0, np.abs(mean + impact * std), 1)
             signal[k] += noise
 
     def generate_noise(self, signal, peaks, type_of_noise, deriv, n):
