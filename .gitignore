@@ -7,6 +7,7 @@ __pycache__/*
 data/**/*.hdf5
 data/**/*.csv
 data/**/*.md
+plot/*
 #Ignore outputs
 output_result/*
 >>>>>>> 7eafdaa22492cc26f47b2fd8f981cbcf1e316a65

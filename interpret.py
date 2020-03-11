@@ -128,21 +128,16 @@ class ecgInterpretation():
     
     #manual amplitudes change in every wave    
     def get_amplitude(self, wave, deriv):
-        if(wave == 'r'):
+        if(wave == 'r' or wave == 'q' or wave == 's'):
             if(deriv <= 6):
                 amplitude = np.random.normal(0, 0.35, 1)
             else:
                 amplitude = np.random.normal(0, 0.45, 1)
-        elif(wave == 'q' or wave == 's'):
-            if(deriv <= 6):
-                amplitude = -np.random.normal(0, 0.35, 1)
-            else:
-                amplitude = -np.random.normal(0, 0.45, 1)
         elif(wave == 't'):
             if(deriv <= 6):
                 amplitude = np.random.normal(0, 0.25, 1)
             else:
-                amplitude = np.random.normal(0, 0.25, 1)
+                amplitude = np.random.normal(0, 0.35, 1)
         elif(wave == 'p'):
             amplitude = np.random.normal(0, 0.25, 1)
         else:
