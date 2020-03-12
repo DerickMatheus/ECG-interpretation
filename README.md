@@ -38,7 +38,7 @@ https://sacred.readthedocs.io/en/stable/command_line.html
 
 <h4> Graphs </h4>
 
-A graphs folder will be created in the main folder, containing the following graphs:
+A graphs folder will be created in the main directory, containing the following graphs:
 
 <i>
 real.png <br/>
@@ -64,4 +64,16 @@ with each noise applied.
 
 <h4> Results </h4>
 
-#TO_DO (I still don't know exactly what the results represent)
+A output_result folder will be created in the main directory, containing two other folders:
+
+<h5>tests</h5>
+
+The tests folder contains one file for each type of noise that was applied. <br/>
+The files contain one vector for each simulation that was made and these vectors represent how much impact the noise
+caused in the judgement of the classification model.
+
+<h5>mean</h5>
+
+The mean folder contains one file for each execution of the code, identified by the eletrocardiogram id. <br/>
+The files are in R format and contains one vector for each type of noise that was applied.<br/>
+These vectors represent the mean of how much impact the noise caused in the judgement of the classification model for every simulation. That is, the vectors in this file are the mean of the vectors previously mentioned on the tests folder.
