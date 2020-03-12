@@ -8,4 +8,3 @@ rm -r model
 rm -r data
 rm 'data.zip?download=1'
 rm 'model.zip?download=1'
-

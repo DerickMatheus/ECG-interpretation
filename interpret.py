@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 import neurokit as nk
 import random
 import datetime
+import csv
 
 class ecgInterpretation():
     def __init__(self, id_ecg):
@@ -145,14 +146,14 @@ class ecgInterpretation():
         return(amplitude)
     
     #random noise insertion
-    def insert_noise(self, signal, interval_begin, interval_end, wave, deriv):   
-        window = np.random.normal(5, 2, 1)
+    def insert_noise(self, signal, interval_begin, interval_end, wave, deriv):
         i = 0
         j = 0
         while ((i < len(interval_begin)) and (j < len(interval_end))):
                 if(interval_begin[i][1] == interval_end[j][1]):
                     noise = self.get_amplitude(wave, deriv)
-                    for k in range(interval_begin[i][0], interval_end[j][0]):
+                    window = np.random.randint(0, 15, 1)[0]
+                    for k in range(max(0, interval_begin[i][0] - window), min(interval_end[j][0] + window, len(signal) - 1)):
                         signal[k] += noise
                     i += 1
                     j += 1
@@ -248,7 +249,7 @@ class ecgInterpretation():
             if(j == 6):
                 i += 1
                 j = 0
-        figname = 'graphs/' + name
+        figname = name
         plt.savefig(figname)
         plt.close()
 
@@ -274,7 +275,7 @@ class ecgInterpretation():
             T[j] = np.array([np.transpose(T[j])])
         return T
 
-    def evaluate(self, scores, real_diagnose, sim, pathology, noise_type):
+    def evaluate(self, scores, real_diagnose, sim, pathology, noise_type, output_directory):
         metric = 0
         if(pathology == -1):
             metric = []
@@ -294,47 +295,48 @@ class ecgInterpretation():
                     if(y_new_score[pathology] != real_diagnose[pathology]):
                         metric += 1
         if(pathology == -1):
-            filename = 'output_result/tests/ecg'+str(self.id_ecg)+'wave'+str(noise_type)
-            with open(filename,'w') as f:
-                  for i in metric:
-                    for j in i:
-                        f.write(str(j))
-                    f.write("\n")
             return(np.mean(metric, axis = 0))
         return(1 - metric/sim)
 
     def test_signal(self, sim, model, signal, peaks, noise_type,
-                    real_diagnose, deriv, all_deriv, n, pathology = -1):
+                    real_diagnose, output_directory, deriv, all_deriv, n, pathology = -1):
         T = self.generate_noises_sim(sim, signal, peaks, noise_type, deriv, all_deriv, n)
         if(all_deriv == False and noise_type != self.test):
             print("simulation deriv = ", self.diagnosis_derivations[deriv])
         T = np.squeeze(T, axis=1)
         scores = model.predict(T)
-        err = self.evaluate(scores, real_diagnose, sim, pathology, noise_type)
+        filename = output_directory + 'ecg_' +str(self.id_ecg)+'_wave_'+str(noise_type)
+        self.print_results(filename, mode = 'all', data = scores, noise_type = noise_type)
+        err = self.evaluate(scores, real_diagnose, sim, pathology, noise_type, output_directory)
             
         return(err)
     
     #Writing final results to a file
-    def print_results(self):
-        for i, res in self.result:
-            filename = 'output_result/means/ecg'+str(self.id_ecg)
-            with open(filename,'a') as f:
-                f.write(str(i))
-                f.write(" = c(")
-                f.write(str(res[0][0]))
-                for num in res[0][1:]:
-                    f.write(",")
-                    f.write(str(num))
-                f.write(")\n")
+    def print_results(self, file_name, mode, data = None, noise_type = None):
+        if(mode == 'mean'):
+            for i, res in self.result:
+                with open(file_name,'a') as f:
+                    f.write(str(i))
+                    f.write(" = c(")
+                    f.write(str(res[0][0]))
+                    for num in res[0][1:]:
+                        f.write(",")
+                        f.write(str(num))
+                    f.write(")\n")
+        if(mode == 'all'):
+            data = data.tolist()
+            with open(file_name, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile, delimiter=',')
+                writer.writerows(data)
 
-    def compute_score(self, sim, model, signal, all_deriv, n):
+    def compute_score(self, sim, model, signal, all_deriv, n, output_name, output_directory):
         start = time.time()
         nderivs = 12
         if(all_deriv == True):
             nderivs = 1
         print("computing ", self.test[0])
         res = self.test_signal(sim, model, signal, self.ecg_process, self.test[0],
-                                  self.true_label, 0, all_deriv, n)
+                                  self.true_label, output_directory, 0, all_deriv, n)
         print(self.test[0], res)
         self.result.append([self.test[0], res])
         for i in self.tests_wave:
@@ -342,15 +344,17 @@ class ecgInterpretation():
             for j in range(nderivs):
                 start_one_execution = time.time()
                 res = self.test_signal(sim, model, signal, self.ecg_process, i,
-                                  self.true_label, j, all_deriv, n)
+                                  self.true_label, output_directory, j, all_deriv, n)
                 self.result.append([i, res])
                 print(i, res)
         
-        self.print_results()
+        if(output_name == None):
+            output_name = 'output_result/means/ecg'+str(self.id_ecg)
+        self.print_results(output_name, mode = 'mean')
         print(time.time() - start)
 
 
-    def execute(self, sim, model, data, all_deriv = True, T = False, realname = None, noisename = None):
+    def execute(self, sim, model, data, all_deriv = True, T = False, realname = None, noisename = None, output_name = None, output_name_mean = None):
         
         ## model most have a "predict" object
         if(realname != None or noisename != None):
@@ -373,16 +377,10 @@ class ecgInterpretation():
             aux_signal = signal
         self.true_label = model.predict(aux_signal)
         
-        filename = 'output_result/means/ecg'+str(self.id_ecg)
-        with open(filename,'w') as f:
-            f.write("original = c(")
-            f.write(str(self.true_label[0][0]))
-            for i in self.true_label[0]:
-                f.write(",")
-                f.write(str(i))
-            f.write(")\n")
+        if(output_name == None):
+            output_name = 'output_result/means/'
                 
         print(self.true_label)
         n = random.randint(0, 20)
-        self.compute_score(sim, model, signal, all_deriv, n)
+        self.compute_score(sim, model, signal, all_deriv, n, output_name_mean, output_name)
         return self.result
