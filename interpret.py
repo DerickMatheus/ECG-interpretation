@@ -86,7 +86,7 @@ class ecgInterpretation():
     def change_rhythm(self, signal):
         for deriv in [0, 1, 4]:
             p_waves = self.ecg_process[deriv]['ECG']['P_Waves']
-            terminal_force = np.random.normal(0, 0.35, 1)[0]
+            terminal_force = np.abs(np.random.normal(0, 0.1, 1)[0])
             wave_duration = np.random.randint(20, 50, 1)[0]
             for waves in p_waves:
                 central_point = waves[0]
@@ -99,6 +99,12 @@ class ecgInterpretation():
                 x_new = np.linspace(x[0], x[-1], np.abs(end - init))
                 y_new = f(x_new)
                 signal[deriv][init:end] = y_new
+            it = random.randint(0, len(self.ecg_process[deriv]['ECG']['R_Peaks']) - 2)
+            rs = [self.ecg_process[deriv]['ECG']['R_Peaks'][it][0], self.ecg_process[deriv]['ECG']['R_Peaks'][it + 1][0]]
+            new_signal = signal[deriv][rs[0]:rs[1]]
+            for i in range(int(4096/len(new_signal))):
+                new_signal = np.append(new_signal, signal[deriv][rs[0]:rs[1]])
+            signal[deriv] = new_signal[0:4096]
         return signal
                     
     def resize_to(self, x, new_length):
@@ -131,16 +137,16 @@ class ecgInterpretation():
     def get_amplitude(self, wave, deriv):
         if(wave == 'r' or wave == 'q' or wave == 's'):
             if(deriv <= 6):
-                amplitude = np.random.normal(0, 0.35, 1)
+                amplitude = np.random.normal(0, 1.5, 1)
             else:
-                amplitude = np.random.normal(0, 0.45, 1)
+                amplitude = np.random.normal(0, 1.7, 1)
         elif(wave == 't'):
             if(deriv <= 6):
-                amplitude = np.random.normal(0, 0.25, 1)
+                amplitude = np.random.normal(0, 0.9, 1)
             else:
-                amplitude = np.random.normal(0, 0.35, 1)
+                amplitude = np.random.normal(0, 1.1, 1)
         elif(wave == 'p'):
-            amplitude = np.random.normal(0, 0.25, 1)
+            amplitude = np.random.normal(0, 0.3, 1)
         else:
             amplitude = np.random.normal(0, 0.3, 1)
         return(amplitude)
@@ -152,8 +158,7 @@ class ecgInterpretation():
         while ((i < len(interval_begin)) and (j < len(interval_end))):
                 if(interval_begin[i][1] == interval_end[j][1]):
                     noise = self.get_amplitude(wave, deriv)
-                    window = np.random.randint(0, 15, 1)[0]
-                    for k in range(max(0, interval_begin[i][0] - window), min(interval_end[j][0] + window, len(signal) - 1)):
+                    for k in range(interval_begin[i][0], interval_end[j][0]):
                         signal[k] += noise
                     i += 1
                     j += 1

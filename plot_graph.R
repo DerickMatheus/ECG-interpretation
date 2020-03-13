@@ -1,19 +1,15 @@
 library(easyGgplot2)
 library(purrr)
 
-source("/scratch/derickmath/interpret/results_pkdd/mean/id_24")
-file_name = "~/123_result.pdf"
+source("/scratch/derickmath/interpret/results_pkdd/mean/id_23")
+file_name = "~/st_result_new.pdf"
 
 diagnosis = c("fdAVb", "RBBB", "LBBB", "SB", "AF", "ST")
 derivations = c("D1", "D2", "D3", "AVL", "AVF", "AVR", "V1", "V2", "V3", "V4", "V5", "V6")
 segs = c("p", "t", "pr", "qt", "A/V Rate", "st", "qrs", "axis", "rhythm", "random15", "random30", "random50", "random", "random2")
-threshold = c(0.15, 0.1, 0.08, 0.33, 0.27, 0.20)
+threshold = c(0.14, 0.1, 0.08, 0.33, 0.27, 0.20)
 id = c(1,2,3,4,5,6)
 names(threshold) = diagnosis
-
-#AV_rate[3] = abs(AV_rate[3]) - abs(pr[3])  - abs(qt[3]) - abs(st[3]) - abs(qrs[3])
-#pr[5] = pr[5] - p[5] - r[5]
-#pr[3] = pr[3] - p[3] - r[3]
 
 data_file = data.frame(p, t, pr, qt, AV_rate, st, qrs, axis, rhythm, random15, random30, random50, random, random2)
 data_t = as.data.frame(t(as.matrix(data_file)))
@@ -74,7 +70,8 @@ p6 = p6 + theme(axis.text=element_text(size=14), axis.title=element_text(size=14
 p6 = p6 + theme(axis.text.x = element_text(angle = 45,hjust = 1), legend.position = "bottom")
 p6 = p6 + labs(y = " ", title = diagnosis[id[6]])
 
-ggplot2.multiplot(p1,p2,p3,p4,p5,p6, cols=3)
-#pdf(file_name)#, height = 3.5)
 #ggplot2.multiplot(p1,p2,p3,p4,p5,p6, cols=3)
-#dev.off()
+
+pdf(file_name)#, height = 3.5)
+p6
+dev.off()
