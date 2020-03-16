@@ -20,7 +20,7 @@ class ecgInterpretation():
                                       "V1", "V2", "V3", "V4", "V5", "V6"]
         self.diagnosis =["BAV1o", "BRD", "BRE", "Bradi", "FA", "Taqui",
                          "Flutt"]
-        self.tests_wave = ['AV_rate', 'qrs', 'p', 't', 'q', 'r', 's', 'pr', 'st', 'qt', 'axis',
+        self.tests_wave = ['AV_rate', 'qrs', 'qrst', 'p', 't', 'pr', 'st', 'qt', 'axis',
                             'random15', 'random30', 'random50', 'random','random2']
         self.map_waves = {'p': ('P_Waves', 'Q_Waves_Onsets'),
                     'q': ('Q_Waves_Onsets', 'Q_Waves'),

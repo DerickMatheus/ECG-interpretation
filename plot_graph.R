@@ -1,7 +1,7 @@
 library(easyGgplot2)
 library(purrr)
 
-source("/scratch/derickmath/interpret/results_pkdd/mean/id_23")
+source("/scratch/derickmath/interpret/results_pkdd/mean/id_1")
 file_name = "~/st_result_new.pdf"
 
 diagnosis = c("fdAVb", "RBBB", "LBBB", "SB", "AF", "ST")
@@ -70,8 +70,8 @@ p6 = p6 + theme(axis.text=element_text(size=14), axis.title=element_text(size=14
 p6 = p6 + theme(axis.text.x = element_text(angle = 45,hjust = 1), legend.position = "bottom")
 p6 = p6 + labs(y = " ", title = diagnosis[id[6]])
 
-#ggplot2.multiplot(p1,p2,p3,p4,p5,p6, cols=3)
+ggplot2.multiplot(p1,p2,p3,p4,p5,p6, cols=3)
 
-pdf(file_name)#, height = 3.5)
-p6
-dev.off()
+#pdf(file_name)#, height = 3.5)
+#p6
+#dev.off()
