@@ -16,6 +16,7 @@ ex = Experiment("interpret")
 
 
 @ex.config
+#Setting the default values for sacred
 def get_config():
     val_traces = 'data/ecg_tracings.hdf5'
     model  = 'data/model.hdf5'
@@ -27,6 +28,7 @@ def get_config():
     output_name_mean = None
     
 @ex.capture
+#This triggers the execute function in the ecgInterpretation class in interpret.py file
 def one_execution(data, sim, id_ecg, model, real, noise, output_name, output_name_mean):
     signals = data[id_ecg]
     if(os.path.exists(model)):
@@ -39,11 +41,11 @@ def one_execution(data, sim, id_ecg, model, real, noise, output_name, output_nam
         raise Exception("no model")
             
 @ex.capture
+#Read data and triggers all requisited executions
 def execute(val_traces, sim, id_ecg, model, real, noise):
     # Get data
     with h5py.File(val_traces, 'r') as file:
         data = np.array(file['tracings'])
-    pd.options.display.max_columns = None    
     if(id_ecg == 'all'):
         for i in range(len(data['x'])):
             print(">>> processing id", i, " <<<")

@@ -306,6 +306,7 @@ class ecgInterpretation():
             mean        = np.mean(metric, axis = 0)
             stdeviation = np.std(metric, axis = 0)
             self.std.append([noise_type, stdeviation])
+            self.result.append([noise_type, mean])
             return(mean)
         return(1 - metric/sim)
 
@@ -369,15 +370,13 @@ class ecgInterpretation():
                 start_one_execution = time.time()
                 res = self.test_signal(sim, model, signal, self.ecg_process, i,
                                   self.true_label, output_directory, j, all_deriv, n)
-                self.result.append([i, res])
                 print(i, res)
         
-        if(output_name == None):
-            output_name = 'output_result/means/ecg'+str(self.id_ecg)
         #Printing means
+        output_name = 'output_result/means/ecg'+str(self.id_ecg)
         self.print_results(output_name, mode = 'mean')
-        output_name = 'output_result/deviations/ecg'+str(self.id_ecg)
         #Printing standard deviations
+        output_name = 'output_result/deviations/ecg'+str(self.id_ecg)
         self.print_results(output_name, mode = 'std')
         print(time.time() - start)
 
