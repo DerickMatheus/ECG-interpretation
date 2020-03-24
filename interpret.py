@@ -13,6 +13,9 @@ import csv
 
 class ecgInterpretation():
     def __init__(self, id_ecg):
+        #Will be filled with the standard deviation for each Wave
+        self.std    = []
+        #Will be filled with the mean of the impact for each Wave
         self.result = []
         self.id_ecg = id_ecg
         self.derivations = ["D1", "D2", "D3", "AVL", "AVF", "AVR", "V1", "V2", "V3", "V4", "V5", "V6"]
@@ -300,7 +303,10 @@ class ecgInterpretation():
                     if(y_new_score[pathology] != real_diagnose[pathology]):
                         metric += 1
         if(pathology == -1):
-            return(np.mean(metric, axis = 0))
+            mean        = np.mean(metric, axis = 0)
+            stdeviation = np.std(metric, axis = 0)
+            self.std.append([noise_type, stdeviation])
+            return(mean)
         return(1 - metric/sim)
 
     def test_signal(self, sim, model, signal, peaks, noise_type,
@@ -318,6 +324,7 @@ class ecgInterpretation():
     
     #Writing final results to a file
     def print_results(self, file_name, mode, data = None, noise_type = None):
+        #This is run last, for the mean of all executions
         if(mode == 'mean'):
             for i, res in self.result:
                 with open(file_name,'a') as f:
@@ -328,6 +335,18 @@ class ecgInterpretation():
                         f.write(",")
                         f.write(str(num))
                     f.write(")\n")
+        #This is run last, for the standard deviation of all executions
+        if(mode == 'std'):
+            for i, res in self.std:
+                with open(file_name,'a') as f:
+                    f.write(str(i))
+                    f.write(" = c(")
+                    f.write(str(res[0][0]))
+                    for num in res[0][1:]:
+                        f.write(",")
+                        f.write(str(num))
+                    f.write(")\n")
+        #This is run for each wave
         if(mode == 'all'):
             data = data.tolist()
             with open(file_name, 'w', newline='') as csvfile:
@@ -355,7 +374,11 @@ class ecgInterpretation():
         
         if(output_name == None):
             output_name = 'output_result/means/ecg'+str(self.id_ecg)
+        #Printing means
         self.print_results(output_name, mode = 'mean')
+        output_name = 'output_result/deviations/ecg'+str(self.id_ecg)
+        #Printing standard deviations
+        self.print_results(output_name, mode = 'std')
         print(time.time() - start)
 
 
