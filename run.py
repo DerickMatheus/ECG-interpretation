@@ -1,5 +1,4 @@
 import warnings
-from naive_classifier import naiveClassifier
 from interpret import ecgInterpretation
 import pandas as pd
 import numpy as np
